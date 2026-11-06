@@ -1,0 +1,7 @@
+# Allowlist: send nothing to the build except the Go source.
+# Keeps .git, .env files and local notes out of the image, keeps the build
+# context small, and stops edits to tests or lint config from busting the cache.
+*
+!app/
+app/**/*_test.go
+app/.golangci.yml
