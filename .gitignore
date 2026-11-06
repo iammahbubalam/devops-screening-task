@@ -1,0 +1,15 @@
+# Written by scripts/system_health.sh
+health_log.txt
+
+# Go build and test output
+/app/server
+*.out
+*.test
+
+# Local environment and secrets
+.env
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
