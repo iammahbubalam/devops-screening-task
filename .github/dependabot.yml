@@ -1,0 +1,27 @@
+# Everything in this repo is pinned (action SHAs, image digests, Go version).
+# Pins only stay safe if something keeps them current; Dependabot does that.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+
+  - package-ecosystem: gomod
+    directory: /app
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
