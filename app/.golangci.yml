@@ -1,0 +1,14 @@
+version: "2"
+
+linters:
+  # On top of the defaults (errcheck, govet, ineffassign, staticcheck, unused).
+  enable:
+    - bodyclose # HTTP response bodies are closed
+    - gosec # security checks, e.g. servers without timeouts
+    - noctx # outgoing requests carry a context
+    - revive # style and naming
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
