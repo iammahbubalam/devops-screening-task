@@ -1,0 +1,21 @@
+services:
+  app:
+    build: .
+    image: devops-screening-task:local
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+    restart: unless-stopped
+    # Hardening: the app writes nothing to disk and needs no Linux capabilities.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # A runaway container cannot starve the host.
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 64M
