@@ -32,7 +32,7 @@ test: ## Run the Go unit tests (needs Go 1.27+)
 lint: ## Lint Go code, the Dockerfile and shell scripts
 	docker run --rm -v "$(CURDIR)/app:/app" -w /app $(GOLANGCI_LINT_IMAGE) golangci-lint run
 	docker run --rm -i $(HADOLINT_IMAGE) < Dockerfile
-	docker run --rm -v "$(CURDIR):/mnt" -w /mnt $(SHELLCHECK_IMAGE) scripts/system_health.sh scripts/smoke_test.sh
+	docker run --rm -v "$(CURDIR):/mnt" -w /mnt $(SHELLCHECK_IMAGE) scripts/system_health.sh scripts/smoke_test.sh scripts/deploy.sh
 
 smoke: build ## Build the image, run it and check the response
 	./scripts/smoke_test.sh $(IMAGE)
