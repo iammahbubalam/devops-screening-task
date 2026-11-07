@@ -52,7 +52,7 @@ jobs:
       - name: Lint shell scripts
         run: >-
           docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:v0.11.0
-          scripts/system_health.sh scripts/smoke_test.sh
+          scripts/system_health.sh scripts/smoke_test.sh scripts/deploy.sh
 
   test:
     name: Unit tests
@@ -151,3 +151,59 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: mode=max
           sbom: true
+
+  # Optional. Runs only when the repository variable DEPLOY_ENABLED is "true",
+  # so without a server the job is skipped and the pipeline above stays green.
+  deploy:
+    name: Deploy to VPS
+    needs: publish
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Shows up under "Deployments" on GitHub with the commit that went live.
+    environment: production
+    # Two deploys must never overlap, and a running deploy is never cancelled.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      APP_DIR: devops-screening-task # relative to the deploy user's home
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # known_hosts pins the server's host key, so the job fails instead of
+      # talking to an impostor. Without it, ssh would trust whoever answers.
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # Deploys the immutable sha- tag that publish just pushed, never
+      # "latest", so the server always runs a known commit.
+      - name: Deploy over SSH
+        env:
+          SSH_TARGET: ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          IMAGE_REPO: docker.io/${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+        run: |
+          IMAGE_TAG="sha-${GITHUB_SHA::7}"
+          opts=(-i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes -o "Port=${SSH_PORT}")
+
+          # SC2029: these values are meant to be filled in here, on the runner,
+          # before ssh sends the command. deploy.sh validates them again.
+          # shellcheck disable=SC2029
+          ssh "${opts[@]}" "$SSH_TARGET" "mkdir -p '$APP_DIR'"
+          scp "${opts[@]}" docker-compose.prod.yml "$SSH_TARGET:$APP_DIR/docker-compose.yml"
+          scp "${opts[@]}" scripts/deploy.sh "$SSH_TARGET:$APP_DIR/deploy.sh"
+          # shellcheck disable=SC2029
+          ssh "${opts[@]}" "$SSH_TARGET" \
+            "IMAGE_REPO='$IMAGE_REPO' IMAGE_TAG='$IMAGE_TAG' bash '$APP_DIR/deploy.sh'"
