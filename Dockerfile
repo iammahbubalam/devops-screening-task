@@ -4,7 +4,7 @@
 # Runs on the build machine's own platform and cross-compiles for the target
 # platform, so building the arm64 image needs no QEMU emulation.
 # Tags are written out (not taken from ARG) so Dependabot can bump them.
-FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine@sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf392ef36b69fe77cd681f18 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS build
 
 WORKDIR /src
 
